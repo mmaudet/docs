@@ -6,6 +6,10 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- ✨(backend) create a dedicated endpoint to update document content 
+
 ### Changed
 
 - ♻️(backend) rename documents content endpoint in formatted-content
