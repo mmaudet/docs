@@ -14,6 +14,10 @@ and this project adheres to
 
 - ♻️(backend) rename documents content endpoint in formatted-content
 
+### Removed
+
+- 🔥(backend) remove content in document responses
+
 ### Added
 
 - 🚸(frontend) allow opening "@page" links with ctrl/command/middle-mouse click
