@@ -6,6 +6,10 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- ♻️(backend) rename documents content endpoint in formatted-content
+
 ### Added
 
 - 🚸(frontend) allow opening "@page" links with ctrl/command/middle-mouse click
