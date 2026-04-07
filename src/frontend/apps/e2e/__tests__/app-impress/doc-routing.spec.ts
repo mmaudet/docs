@@ -40,6 +40,33 @@ test.describe('Doc Routing', () => {
     await expect(page).toHaveURL(/\/docs\/$/);
   });
 
+  test('checks 500 redirect on docs/[id] page', async ({ page }) => {
+    await page.route(/.*\/api\/v1.0\/documents\/.*/, async (route) => {
+      const request = route.request();
+      if (
+        request.method().includes('GET') &&
+        !request.url().includes('page=')
+      ) {
+        await route.fulfill({
+          status: 500,
+          json: { detail: 'Internal Server Error' },
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    await page.goto('/docs/some-server-error-doc');
+
+    await expect(
+      page.getByText(
+        'An unexpected error occurred. Go grab a coffee or try to refresh the page.',
+      ),
+    ).toBeVisible({ timeout: 15000 });
+
+    await expect(page).toHaveURL(/\/500\/?$/);
+  });
+
   test('checks 404 on docs/[id] page', async ({ page }) => {
     await page.waitForTimeout(300);
 
