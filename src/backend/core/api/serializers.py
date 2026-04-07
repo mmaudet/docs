@@ -207,6 +207,7 @@ class DocumentSerializer(ListDocumentSerializer):
             "nb_accesses_direct",
             "numchild",
             "path",
+            "gweder_properties",
             "title",
             "updated_at",
             "user_role",

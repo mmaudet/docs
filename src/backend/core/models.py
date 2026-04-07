@@ -909,6 +909,12 @@ class Document(MP_Node, BaseModel):
         blank=True,
         null=True,
     )
+    gweder_properties = models.JSONField(
+        null=True,
+        blank=True,
+        default=None,
+        help_text="Gweder document properties (ref, date, audience, metadata)",
+    )
 
     _content = None
 
