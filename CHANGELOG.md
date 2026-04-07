@@ -8,6 +8,7 @@ and this project adheres to
 
 ### Added
 
+- 🚸(frontend) allow opening "@page" links with ctrl/command/middle-mouse click
 - ✨(backend) create a dedicated endpoint to update document content 
 - ⚡️(backend) stream s3 file content with a dedicated endpoint
 
@@ -19,9 +20,6 @@ and this project adheres to
 
 - 🔥(backend) remove content in document responses
 
-### Added
-
-- 🚸(frontend) allow opening "@page" links with ctrl/command/middle-mouse click
 
 ## [v4.8.5] - 2026-04-03
 

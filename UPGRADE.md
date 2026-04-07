@@ -16,6 +16,18 @@ the following command inside your docker container:
 
 ## [Unreleased]
 
+We made several changes around document content management leading to several breaking changes in the API.
+
+- The endpoint `/api/v1.0/documents/{document_id}/content/` has been renammed in `/api/v1.0/documents/{document_id}/formatted-content/`
+- There is no more `content` attribute in the response of `/api/v1.0/documents/{document_id}/`, two new endpoints have been added to retrieve or update the document content.
+- New endpoint `GET /api/v1.0/documents/{document_id}/content/` to fetch the document content, this endpoint directly return the content and the response content-type is `text/plain`
+- New endpoint `PATCH /api/v1.0/documents/{document_id}/content/` to update the document content. the expected payload is:
+```json
+{
+  "content": "document content in base64",
+}
+```
+
 ## [4.6.0] - 2026-02-27
 
 - ⚠️ Some setup have changed to offer a bigger flexibility and consistency, overriding the favicon and logo are now from the theme configuration.
