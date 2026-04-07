@@ -10,6 +10,10 @@ and this project adheres to
 
 - 🚸(frontend) allow opening "@page" links with ctrl/command/middle-mouse click
 
+### Fixed
+
+- 🐛 Fixed side effects between comments and versioning #2183
+
 ## [v4.8.5] - 2026-04-03
 
 ### Added
