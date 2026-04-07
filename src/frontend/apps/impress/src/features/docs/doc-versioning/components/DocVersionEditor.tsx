@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import * as Y from 'yjs';
 
-import { Box, Text, TextErrors } from '@/components';
+import { Box } from '@/components';
 import { BlockNoteReader } from '@/docs/doc-editor/components/BlockNoteEditor';
 import { DocEditorContainer } from '@/docs/doc-editor/components/DocEditor';
 import { Doc, base64ToBlocknoteXmlFragment } from '@/docs/doc-management';
@@ -50,29 +50,11 @@ export const DocVersionEditor = ({
 
   if (isError && error) {
     if (error.status === 404) {
-      void replace(`/404`);
-      return null;
+      void replace('/404');
+    } else {
+      void replace('/500');
     }
-
-    return (
-      <Box $margin="large" className="--docs--doc-version-editor-error">
-        <TextErrors
-          causes={error.cause}
-          status={error.status}
-          icon={
-            error.status === 502 ? (
-              <Text
-                className="material-icons"
-                $theme="danger"
-                aria-hidden={true}
-              >
-                wifi_off
-              </Text>
-            ) : undefined
-          }
-        />
-      </Box>
-    );
+    return null;
   }
 
   if (isLoading || !version || !initialContent) {

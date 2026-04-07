@@ -1,9 +1,11 @@
 import { Loader } from '@gouvfr-lasuite/cunningham-react';
 import { DateTime } from 'luxon';
+import { useRouter } from 'next/router';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { APIError } from '@/api';
-import { Box, Icon, InfiniteScroll, Text, TextErrors } from '@/components';
+import { Box, InfiniteScroll, Text } from '@/components';
 import { Doc } from '@/docs/doc-management';
 import { useDate } from '@/hooks';
 
@@ -28,6 +30,13 @@ const VersionListState = ({
   versions,
 }: VersionListStateProps) => {
   const { formatDateSpecial } = useDate();
+  const { replace } = useRouter();
+
+  useEffect(() => {
+    if (error) {
+      void replace('/500');
+    }
+  }, [error, replace]);
 
   if (isLoading) {
     return (
@@ -55,22 +64,6 @@ const VersionListState = ({
           </Box>
         );
       })}
-      {error && (
-        <Box
-          $justify="center"
-          $margin={{ vertical: 'small', horizontal: 'small' }}
-        >
-          <TextErrors
-            causes={error.cause}
-            status={error.status}
-            icon={
-              error.status === 502 ? (
-                <Icon iconName="wifi_off" $theme="danger" />
-              ) : undefined
-            }
-          />
-        </Box>
-      )}
     </Box>
   );
 };
