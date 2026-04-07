@@ -57,6 +57,7 @@ import {
   InterlinkingLinkInlineContent,
   InterlinkingSearchInlineContent,
 } from './custom-inline-content';
+import { withClassification } from './gweder/withClassification';
 import XLMultiColumn from './xl-multi-column';
 
 const localesBNMultiColumn = XLMultiColumn?.locales;
@@ -80,8 +81,10 @@ const baseBlockNoteSchema = withPageBreak(
   }),
 );
 
-export const blockNoteSchema = (withMultiColumn?.(baseBlockNoteSchema) ||
-  baseBlockNoteSchema) as typeof baseBlockNoteSchema;
+export const blockNoteSchema = withClassification(
+  (withMultiColumn?.(baseBlockNoteSchema) ||
+    baseBlockNoteSchema) as typeof baseBlockNoteSchema,
+);
 
 interface BlockNoteEditorProps {
   doc: Doc;
