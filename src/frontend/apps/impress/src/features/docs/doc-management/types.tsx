@@ -48,6 +48,17 @@ export enum LinkRole {
 
 export type Base64 = string;
 
+export interface GwederProperties {
+  ref: string;
+  date: string;
+  expires_at: string;
+  audience: string[];
+  auteur: string;
+  emetteur_nom: string;
+  emetteur_siret: string;
+  destinataire: string;
+}
+
 export interface Doc {
   id: string;
   title?: string;
@@ -59,6 +70,7 @@ export interface Doc {
   deleted_at: string | null;
   depth: number;
   path: string;
+  gweder_properties?: GwederProperties | null;
   is_favorite: boolean;
   link_reach: LinkReach;
   link_role?: LinkRole;
