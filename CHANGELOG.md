@@ -9,6 +9,7 @@ and this project adheres to
 ### Added
 
 - ✨(backend) create a dedicated endpoint to update document content 
+- ⚡️(backend) stream s3 file content with a dedicated endpoint
 
 ### Changed
 

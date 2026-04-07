@@ -16,7 +16,7 @@ from django.utils.translation import gettext_lazy as _
 import magic
 from rest_framework import serializers
 
-from core import choices, enums, models, utils, validators
+from core import choices, enums, models, validators
 from core.services import mime_types
 from core.services.ai_services import AI_ACTIONS
 from core.services.converter_services import (

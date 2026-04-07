@@ -1310,6 +1310,7 @@ class Document(MP_Node, BaseModel):
             "comment": can_comment,
             "formatted_content": can_get,
             "content_patch": can_update,
+            "content_retrieve": retrieve,
             "cors_proxy": can_get,
             "descendants": can_get,
             "destroy": can_destroy,

@@ -1872,10 +1872,8 @@ class DocumentViewSet(
 
         return drf.response.Response("authorized", headers=request.headers, status=200)
 
-    @drf.decorators.action(detail=True, methods=["patch"], url_path="content")
-    def content(self, request, *args, **kwargs):
+    def _content_patch(self, request, document):
         """Update the raw Yjs content of a document stored in S3."""
-        document = self.get_object()
         serializer = serializers.DocumentContentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -1929,6 +1927,40 @@ class DocumentViewSet(
         document.save()
 
         return drf_response.Response(status=status.HTTP_204_NO_CONTENT)
+
+    def _content_retrieve(self, request, document):
+        """Retrieve the raw content file ni s3 and stream it."""
+
+        if not default_storage.exists(document.file_key):
+            return drf_response.Response(status=status.HTTP_404_NOT_FOUND)
+
+        file = default_storage.open(document.file_key, "rb")
+
+        response = StreamingHttpResponse(
+            streaming_content=iter(lambda: file.read(8192), b""),
+            content_type="text/plain",
+            status=status.HTTP_200_OK,
+        )
+
+        try:
+            response["Content-Length"] = default_storage.size(document.file_key)
+        except NotImplementedError:
+            pass
+
+        return response
+
+    @drf.decorators.action(detail=True, methods=["patch", "get"], url_path="content")
+    def content(self, request, *args, **kwargs):
+        """Retrieve or update content stored in s3."""
+        document = self.get_object()
+
+        if request.method == "PATCH":
+            return self._content_patch(request, document)
+
+        if request.method == "GET":
+            return self._content_retrieve(request, document)
+
+        return drf_response.Response(status=status.HTTP_501_NOT_IMPLEMENTED)
 
     @drf.decorators.action(detail=True, methods=["get"], url_path="media-check")
     def media_check(self, request, *args, **kwargs):
