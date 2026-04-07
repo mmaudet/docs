@@ -28,6 +28,7 @@ import { exportCorsResolveFileUrl } from '../api/exportResolveFileUrl';
 import { docxDocsSchemaMappings } from '../mappingDocx';
 import { odtDocsSchemaMappings } from '../mappingODT';
 import { pdfDocsSchemaMappings } from '../mappingPDF';
+import { blocksToGwederJSON } from '../mappingGwederJSON';
 import { downloadFile } from '../utils';
 import {
   addMediaFilesToZip,
@@ -42,6 +43,7 @@ enum DocDownloadFormat {
   DOCX = 'docx',
   ODT = 'odt',
   PRINT = 'print',
+  GWEDER_JSON = 'gweder_json',
 }
 
 interface ModalExportProps {
@@ -65,6 +67,7 @@ export const ModalExport = ({ onClose, doc }: ModalExportProps) => {
     { label: t('Docx'), value: DocDownloadFormat.DOCX },
     { label: t('ODT'), value: DocDownloadFormat.ODT },
     { label: t('HTML'), value: DocDownloadFormat.HTML },
+    { label: t('Gweder JSON'), value: DocDownloadFormat.GWEDER_JSON },
     { label: t('Print'), value: DocDownloadFormat.PRINT },
   ];
 
@@ -183,6 +186,20 @@ export const ModalExport = ({ onClose, doc }: ModalExportProps) => {
       zip.file('styles.css', cssContent);
 
       blobExport = await zip.generateAsync({ type: 'blob' });
+    } else if (format === DocDownloadFormat.GWEDER_JSON) {
+      const gwederProps = doc.gweder_properties;
+      if (!gwederProps) {
+        toast(
+          t('Veuillez renseigner les propriétés Gweder avant l\'export'),
+          VariantType.ERROR,
+        );
+        setIsExporting(false);
+        return;
+      }
+      const gwederDocument = blocksToGwederJSON(exportDocument, gwederProps);
+      blobExport = new Blob([JSON.stringify(gwederDocument, null, 2)], {
+        type: 'application/json',
+      });
     } else {
       toast(t('The export failed'), VariantType.ERROR);
       setIsExporting(false);
@@ -190,7 +207,11 @@ export const ModalExport = ({ onClose, doc }: ModalExportProps) => {
     }
 
     const downloadExtension =
-      format === DocDownloadFormat.HTML ? 'zip' : format;
+      format === DocDownloadFormat.HTML
+        ? 'zip'
+        : format === DocDownloadFormat.GWEDER_JSON
+          ? 'json'
+          : format;
 
     downloadFile(blobExport, `${filename}.${downloadExtension}`);
 
