@@ -16,6 +16,7 @@ import { AIGroupButton } from '../AI/AIButtonMIT';
 import { CommentToolbarButton } from '../comments/CommentToolbarButton';
 import { getCalloutFormattingToolbarItems } from '../custom-blocks';
 
+import { ClassificationToolbarButton } from '../gweder/ClassificationToolbarButton';
 import { FileDownloadButton } from './FileDownloadButton';
 import { MarkdownButton } from './MarkdownButton';
 
@@ -93,6 +94,9 @@ export const BlockNoteToolbar = ({ aiAllowed }: { aiAllowed: boolean }) => {
 
         {/* Extra button to convert from markdown to json */}
         <MarkdownButton key="customButton" />
+
+        {/* Gweder classification badge */}
+        <ClassificationToolbarButton key="classificationButton" />
       </FormattingToolbar>
     );
   }, [
