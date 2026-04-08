@@ -40,10 +40,15 @@ export function HeadingClassificationOverlay() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    ensureProfile().then(() => setReady(true));
+    console.log('[GwederOverlay] mounted');
+    ensureProfile().then(() => {
+      console.log('[GwederOverlay] profile loaded, levels:', profileLevels?.length);
+      setReady(true);
+    });
   }, []);
 
   const updateBadges = useCallback(() => {
+    console.log('[GwederOverlay] updateBadges called, ready:', ready, 'levels:', profileLevels?.length);
     if (!ready || !profileLevels) return;
 
     try {
@@ -56,18 +61,20 @@ export function HeadingClassificationOverlay() {
       }
 
       // Find all heading containers in DOM
-      document.querySelectorAll('.bn-block[data-node-type="blockContainer"]').forEach(function (container) {
+      var containers = document.querySelectorAll('.bn-block[data-node-type="blockContainer"]');
+      console.log('[GwederOverlay] DOM containers:', containers.length, 'editor blocks:', classMap.size);
+      containers.forEach(function (container) {
         var h = container.querySelector('h1,h2,h3');
         if (!h) return;
 
         var dataId = container.getAttribute('data-id') || '';
         var classification = classMap.get(dataId) || DEFAULT_CLASSIFICATION;
+        console.log('[GwederOverlay] heading:', h.textContent?.substring(0,20), 'data-id:', dataId?.substring(0,20), 'cls:', classification, 'matched:', classMap.has(dataId));
         var info = getLevelInfo(classification);
 
-        // Check if pill already exists
+        // Check if pill already exists in this container
         var existing = container.querySelector('.gweder-pill') as HTMLElement;
         if (existing) {
-          // Update if changed
           if (existing.textContent !== info.label) {
             existing.textContent = info.label;
             existing.style.background = info.color;
@@ -75,25 +82,20 @@ export function HeadingClassificationOverlay() {
           return;
         }
 
-        // Create pill — position it AFTER the heading element using the block-content wrapper
-        var blockContent = h.closest('.bn-block-content') as HTMLElement;
-        if (!blockContent) return;
-
+        // Create pill and append AFTER the heading element (sibling, not child)
         var pill = document.createElement('span');
         pill.className = 'gweder-pill';
         pill.textContent = info.label;
+        pill.setAttribute('contenteditable', 'false');
         pill.setAttribute('style',
-          'display:inline-flex;align-items:center;justify-content:center;' +
-          'background:' + info.color + ';color:#fff;border-radius:12px;' +
-          'padding:2px 12px;font-size:11px;font-weight:600;line-height:20px;' +
-          'white-space:nowrap;flex-shrink:0;cursor:pointer;' +
-          'position:absolute;right:8px;top:50%;transform:translateY(-50%);'
+          'display:inline-block;background:' + info.color + ';color:#fff;' +
+          'border-radius:12px;padding:2px 12px;font-size:11px;font-weight:600;' +
+          'line-height:20px;white-space:nowrap;margin-left:12px;vertical-align:middle;' +
+          'user-select:none;pointer-events:none;'
         );
 
-        // Make block-content position:relative so the pill is positioned correctly
-        blockContent.style.position = 'relative';
-        blockContent.style.paddingRight = '100px'; // space for the pill
-        blockContent.appendChild(pill);
+        // Append to the heading element itself (proven to work from console test)
+        h.appendChild(pill);
       });
     } catch {
       // Editor not ready
