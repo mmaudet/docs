@@ -38,17 +38,25 @@ export function ClassificationToolbarButton() {
       try {
         const gwederRef = (window as any).__gwederDocRef;
         if (gwederRef) {
-          const headingBlock = selectedBlocks.find(b => b.type === 'heading');
-          const sectionId = headingBlock ?
-            headingBlock.content?.map((c: any) => c.text || '').join('').toLowerCase()
+          const slugify = (text: string) =>
+            text.toLowerCase()
               .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-              .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+              .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+          const headingBlock = currentBlock?.type === 'heading'
+            ? currentBlock
+            : selectedBlocks.find(b => b.type === 'heading');
+          const sectionId = headingBlock
+            ? slugify(headingBlock.content?.map((c: any) => c.text || '').join('') ?? '')
             : currentBlock?.id;
           if (sectionId) {
             const gwederApi = (window as any).__gwederApiUrl || 'http://localhost:8000';
+            const systemUser = btoa(JSON.stringify({ email: 'system@gweder.app', role: 'directeur', org: 'LINAGORA' }));
             fetch(`${gwederApi}/doc/${gwederRef}/update`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'X-User-Info': systemUser,
+              },
               body: JSON.stringify({ section_id: sectionId, classification: value }),
             }).catch(() => {});
           }
