@@ -1,134 +1,124 @@
 /**
  * HeadingClassificationOverlay
  *
- * Injects classification pill badges into heading elements in the BlockNote
- * editor. Uses a MutationObserver to detect when headings appear/change
- * and renders React portals into them.
+ * Injects classification pill badges next to each heading in the BlockNote editor.
+ * Scans the DOM for .bn-block[data-node-type="blockContainer"] containing h1/h2/h3,
+ * reads the classification from the editor's block data, and renders a colored pill.
  */
 import { useBlockNoteEditor } from '@blocknote/react';
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { createRoot } from 'react-dom/client';
 
 import { type Classification, DEFAULT_CLASSIFICATION } from './constants';
 
-// Inline pill component (no dropdown — clicking triggers toolbar selection)
-function Pill({ classification, color }: { classification: string; color: string }) {
-  return (
-    <span
-      className="gweder-pill"
-      style={{
-        display: 'inline-block',
-        background: color,
-        color: '#fff',
-        borderRadius: '12px',
-        padding: '2px 10px',
-        fontSize: '11px',
-        fontWeight: 600,
-        lineHeight: '18px',
-        marginLeft: '8px',
-        verticalAlign: 'middle',
-        whiteSpace: 'nowrap',
-        pointerEvents: 'none',
-      }}
-    >
-      {classification}
-    </span>
-  );
-}
-
-// Cache for profile levels
+// Profile cache
 let profileLevels: Array<{ id: string; label: string; color: string }> | null = null;
 
-async function loadProfile() {
-  if (profileLevels) return profileLevels;
+async function ensureProfile() {
+  if (profileLevels) return;
   try {
-    const gwederApi = (window as any).__gwederApiUrl || 'http://localhost:8000';
-    const r = await fetch(`${gwederApi}/profile`);
+    const api = (window as any).__gwederApiUrl || 'http://localhost:8000';
+    const r = await fetch(`${api}/profile`);
     if (r.ok) {
-      const data = await r.json();
-      profileLevels = data.levels;
-      return profileLevels!;
+      profileLevels = (await r.json()).levels;
+      return;
     }
-  } catch { /* fallback */ }
+  } catch { /* */ }
   profileLevels = [
     { id: 'PUBLIC', label: 'Public', color: '#6B7280' },
+    { id: 'GENERAL', label: 'Général', color: '#10B981' },
     { id: 'RESTREINT', label: 'Restreint', color: '#3B82F6' },
     { id: 'CONFIDENTIEL', label: 'Confidentiel', color: '#F59E0B' },
     { id: 'SECRET', label: 'Secret', color: '#EF4444' },
   ];
-  return profileLevels;
 }
 
 function getLevelInfo(id: string) {
-  const level = profileLevels?.find(l => l.id === id);
-  return level || { id, label: id, color: '#6B7280' };
+  return profileLevels?.find((l) => l.id === id) || { id, label: id, color: '#6B7280' };
+}
+
+function createPillElement(label: string, color: string): HTMLSpanElement {
+  const pill = document.createElement('span');
+  pill.className = 'gweder-pill';
+  pill.textContent = label;
+  Object.assign(pill.style, {
+    display: 'inline-block',
+    background: color,
+    color: '#fff',
+    borderRadius: '12px',
+    padding: '2px 10px',
+    fontSize: '11px',
+    fontWeight: '600',
+    lineHeight: '18px',
+    marginLeft: '8px',
+    verticalAlign: 'middle',
+    whiteSpace: 'nowrap',
+    pointerEvents: 'none',
+    flexShrink: '0',
+  });
+  return pill;
 }
 
 export function HeadingClassificationOverlay() {
   const editor = useBlockNoteEditor();
-  const rootsRef = useRef<Map<string, ReturnType<typeof createRoot>>>(new Map());
   const [ready, setReady] = useState(false);
 
-  // Load profile on mount
   useEffect(() => {
-    loadProfile().then(() => setReady(true));
+    ensureProfile().then(() => setReady(true));
   }, []);
 
   const updateBadges = useCallback(() => {
-    if (!ready) return;
+    if (!ready || !profileLevels) return;
 
     try {
+      // Get all blocks from editor
       const blocks = editor.document;
 
+      // Build a map: block data-id → classification
+      const classificationMap = new Map<string, string>();
       for (const block of blocks) {
-        if (block.type !== 'heading') continue;
+        if (block.type === 'heading') {
+          const cls = ((block.props as any)?.classification as string) || DEFAULT_CLASSIFICATION;
+          classificationMap.set(block.id, cls);
+        }
+      }
 
-        const classification = ((block.props as any)?.classification as string) || DEFAULT_CLASSIFICATION;
+      // Find all heading containers in DOM
+      const containers = document.querySelectorAll(
+        '.bn-block[data-node-type="blockContainer"]'
+      );
+
+      for (const container of containers) {
+        const heading = container.querySelector('h1, h2, h3');
+        if (!heading) continue;
+
+        const dataId = container.getAttribute('data-id') || '';
+        const classification = classificationMap.get(dataId) || DEFAULT_CLASSIFICATION;
         const levelInfo = getLevelInfo(classification);
 
-        // Find the heading element in DOM — BlockNote uses data-id on the block wrapper
-        // Try multiple selectors
-        let blockEl = document.querySelector(`[data-id="${block.id}"]`) as HTMLElement;
-        if (!blockEl) {
-          // BlockNote 0.47 may use data-node-view-content or other attributes
-          // Try finding by the inline content
-          const allHeadings = document.querySelectorAll('[data-content-type="heading"], [data-node-type="blockContainer"] h1, [data-node-type="blockContainer"] h2, [data-node-type="blockContainer"] h3, .bn-block-content[data-content-type="heading"]');
-          // Match by text content
-          const headingText = block.content?.map((c: any) => c.text || '').join('') || '';
-          for (const h of allHeadings) {
-            if (h.textContent?.trim() === headingText.trim()) {
-              blockEl = (h.closest('[data-node-type="blockContainer"]') || h.parentElement || h) as HTMLElement;
-              break;
-            }
-          }
-        }
-
-        if (!blockEl) continue;
-
         // Check if pill already exists
-        let pillContainer = blockEl.querySelector('.gweder-pill-container') as HTMLElement;
-        if (!pillContainer) {
-          pillContainer = document.createElement('span');
-          pillContainer.className = 'gweder-pill-container';
-          pillContainer.style.cssText = 'display:inline;';
+        let pill = container.querySelector('.gweder-pill') as HTMLSpanElement;
 
-          // Find the heading text element and append after it
-          const headingContent = blockEl.querySelector('h1, h2, h3, [data-content-type="heading"] .bn-inline-content, [role="textbox"]');
-          if (headingContent) {
-            headingContent.parentElement?.appendChild(pillContainer);
-          } else {
-            blockEl.appendChild(pillContainer);
+        if (pill) {
+          // Update existing pill
+          if (pill.textContent !== levelInfo.label || pill.style.background !== levelInfo.color) {
+            pill.textContent = levelInfo.label;
+            pill.style.background = levelInfo.color;
+          }
+        } else {
+          // Create new pill — insert it inside the heading's inline content wrapper
+          pill = createPillElement(levelInfo.label, levelInfo.color);
+
+          // Make the heading content a flex container to push pill to the right
+          const inlineContent = heading.closest('.bn-block-content') || heading.parentElement;
+          if (inlineContent) {
+            const contentEl = inlineContent as HTMLElement;
+            contentEl.style.display = 'flex';
+            contentEl.style.alignItems = 'center';
+            contentEl.style.justifyContent = 'space-between';
+            contentEl.style.gap = '8px';
+            contentEl.appendChild(pill);
           }
         }
-
-        // Render or update the pill
-        const key = block.id;
-        if (!rootsRef.current.has(key)) {
-          rootsRef.current.set(key, createRoot(pillContainer));
-        }
-        rootsRef.current.get(key)!.render(
-          <Pill classification={levelInfo.label} color={levelInfo.color} />
-        );
       }
     } catch {
       // Editor not ready
@@ -138,22 +128,19 @@ export function HeadingClassificationOverlay() {
   useEffect(() => {
     if (!ready) return;
 
-    // Initial render
-    const timer = setTimeout(updateBadges, 500);
+    // Initial render after a short delay (DOM needs to be ready)
+    const timer = setTimeout(updateBadges, 800);
 
-    // Re-render periodically to catch changes
-    const interval = setInterval(updateBadges, 2000);
+    // Re-render periodically
+    const interval = setInterval(updateBadges, 1500);
 
     return () => {
       clearTimeout(timer);
       clearInterval(interval);
-      // Cleanup roots
-      for (const root of rootsRef.current.values()) {
-        try { root.unmount(); } catch { /* */ }
-      }
-      rootsRef.current.clear();
+      // Cleanup pills
+      document.querySelectorAll('.gweder-pill').forEach((el) => el.remove());
     };
   }, [updateBadges, ready]);
 
-  return null; // Rendering happens via createRoot into DOM elements
+  return null;
 }
