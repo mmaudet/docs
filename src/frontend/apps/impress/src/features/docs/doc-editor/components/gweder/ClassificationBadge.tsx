@@ -5,6 +5,7 @@ import {
   CLASSIFICATION_LABELS,
   CLASSIFICATION_LEVELS,
   type Classification,
+  type ProfileLevel,
 } from "./constants";
 
 interface Props {
@@ -12,11 +13,66 @@ interface Props {
   onChange: (value: Classification) => void;
 }
 
+// Cache for dynamically loaded levels
+let dynamicLevels: ProfileLevel[] | null = null;
+let loadingPromise: Promise<ProfileLevel[]> | null = null;
+
+function loadLevels(): Promise<ProfileLevel[]> {
+  if (dynamicLevels) return Promise.resolve(dynamicLevels);
+  if (loadingPromise) return loadingPromise;
+
+  const gwederApi = (window as any).__gwederApiUrl || "http://localhost:8000";
+  loadingPromise = fetch(`${gwederApi}/profile`)
+    .then((r) => (r.ok ? r.json() : Promise.reject("not ok")))
+    .then((data) => {
+      dynamicLevels = data.levels;
+      return dynamicLevels!;
+    })
+    .catch(() => {
+      // Fallback to static constants
+      dynamicLevels = CLASSIFICATION_LEVELS.map((id, i) => ({
+        id,
+        numeric: i,
+        label: CLASSIFICATION_LABELS[id as Classification],
+        color: CLASSIFICATION_COLORS[id as Classification].text,
+        aliases: [],
+      }));
+      return dynamicLevels;
+    })
+    .finally(() => {
+      loadingPromise = null;
+    });
+
+  return loadingPromise;
+}
+
+function getColor(levelId: string, levels: ProfileLevel[]) {
+  const level = levels.find((l) => l.id === levelId);
+  if (level) {
+    return { bg: level.color + "1A", text: level.color, border: level.color };
+  }
+  const fallback = CLASSIFICATION_COLORS[levelId as Classification];
+  return fallback || { bg: "#f5f5f5", text: "#666", border: "#ccc" };
+}
+
+function getLabel(levelId: string, levels: ProfileLevel[]) {
+  const level = levels.find((l) => l.id === levelId);
+  if (level) return level.label;
+  const fallback = CLASSIFICATION_LABELS[levelId as Classification];
+  return fallback || levelId;
+}
+
 export function ClassificationBadge({ value, onChange }: Props) {
   const [open, setOpen] = useState(false);
+  const [levels, setLevels] = useState<ProfileLevel[]>([]);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+
+  // Load levels from Gweder API on mount
+  useEffect(() => {
+    loadLevels().then(setLevels);
+  }, []);
 
   const updatePosition = useCallback(() => {
     if (buttonRef.current) {
@@ -43,7 +99,7 @@ export function ClassificationBadge({ value, onChange }: Props) {
     }
   }, [open]);
 
-  const colors = CLASSIFICATION_COLORS[value];
+  const colors = getColor(value, levels);
 
   const handleToggle = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -51,6 +107,15 @@ export function ClassificationBadge({ value, onChange }: Props) {
     if (!open) updatePosition();
     setOpen(!open);
   };
+
+  // Use dynamic levels if loaded, otherwise fallback to static
+  const displayLevels = levels.length > 0 ? levels : CLASSIFICATION_LEVELS.map((id, i) => ({
+    id,
+    numeric: i,
+    label: CLASSIFICATION_LABELS[id as Classification],
+    color: CLASSIFICATION_COLORS[id as Classification].text,
+    aliases: [],
+  }));
 
   return (
     <>
@@ -70,7 +135,7 @@ export function ClassificationBadge({ value, onChange }: Props) {
           lineHeight: "18px",
         }}
       >
-        {CLASSIFICATION_LABELS[value]} ▼
+        {getLabel(value, levels)} ▼
       </button>
 
       {open && createPortal(
@@ -85,20 +150,20 @@ export function ClassificationBadge({ value, onChange }: Props) {
             borderRadius: "6px",
             boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
             zIndex: 99999,
-            minWidth: "140px",
+            minWidth: "160px",
             overflow: "hidden",
           }}
         >
-          {CLASSIFICATION_LEVELS.map((level) => {
-            const c = CLASSIFICATION_COLORS[level];
+          {displayLevels.map((level) => {
+            const c = getColor(level.id, levels);
             return (
               <button
-                key={level}
+                key={level.id}
                 type="button"
                 onMouseDown={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  onChange(level);
+                  onChange(level.id as Classification);
                   setOpen(false);
                 }}
                 style={{
@@ -106,15 +171,15 @@ export function ClassificationBadge({ value, onChange }: Props) {
                   width: "100%",
                   padding: "8px 14px",
                   border: "none",
-                  background: value === level ? c.bg : "transparent",
+                  background: value === level.id ? c.bg : "transparent",
                   color: c.text,
                   fontSize: "13px",
-                  fontWeight: value === level ? 700 : 400,
+                  fontWeight: value === level.id ? 700 : 400,
                   cursor: "pointer",
                   textAlign: "left",
                 }}
               >
-                {level}
+                {level.label}
               </button>
             );
           })}
