@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   CLASSIFICATION_COLORS,
   CLASSIFICATION_LABELS,
@@ -13,25 +14,50 @@ interface Props {
 
 export function ClassificationBadge({ value, onChange }: Props) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+
+  const updatePosition = useCallback(() => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 4,
+        left: rect.right - 140,
+      });
+    }
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
+        buttonRef.current && !buttonRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [open]);
 
   const colors = CLASSIFICATION_COLORS[value];
 
+  const handleToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!open) updatePosition();
+    setOpen(!open);
+  };
+
   return (
-    <div ref={ref} style={{ position: "relative", display: "inline-block" }}>
+    <>
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setOpen(!open)}
+        onMouseDown={handleToggle}
         style={{
           background: colors.bg,
           color: colors.text,
@@ -47,18 +73,18 @@ export function ClassificationBadge({ value, onChange }: Props) {
         {CLASSIFICATION_LABELS[value]} ▼
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
+          ref={dropdownRef}
           style={{
-            position: "absolute",
-            top: "100%",
-            right: 0,
-            marginTop: "4px",
+            position: "fixed",
+            top: dropdownPos.top,
+            left: dropdownPos.left,
             background: "#fff",
             border: "1px solid #ddd",
             borderRadius: "6px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-            zIndex: 1000,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            zIndex: 99999,
             minWidth: "140px",
             overflow: "hidden",
           }}
@@ -69,18 +95,20 @@ export function ClassificationBadge({ value, onChange }: Props) {
               <button
                 key={level}
                 type="button"
-                onClick={() => {
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   onChange(level);
                   setOpen(false);
                 }}
                 style={{
                   display: "block",
                   width: "100%",
-                  padding: "6px 12px",
+                  padding: "8px 14px",
                   border: "none",
                   background: value === level ? c.bg : "transparent",
                   color: c.text,
-                  fontSize: "12px",
+                  fontSize: "13px",
                   fontWeight: value === level ? 700 : 400,
                   cursor: "pointer",
                   textAlign: "left",
@@ -90,8 +118,9 @@ export function ClassificationBadge({ value, onChange }: Props) {
               </button>
             );
           })}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
