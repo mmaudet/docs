@@ -21,6 +21,14 @@ const nextConfig = {
     // Mantine and the Cunningham design system.
     optimizePackageImports: ['@mantine/core', '@mantine/hooks', 'lodash'],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/gweder-api/:path*',
+        destination: `${process.env.NEXT_PUBLIC_GWEDER_API || 'http://localhost:8000'}/:path*`,
+      },
+    ];
+  },
   generateBuildId: () => buildId,
   env: {
     NEXT_PUBLIC_BUILD_ID: buildId,

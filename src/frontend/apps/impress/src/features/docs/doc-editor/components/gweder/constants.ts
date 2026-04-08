@@ -17,3 +17,35 @@ export const CLASSIFICATION_LABELS: Record<Classification, string> = {
 };
 
 export const DEFAULT_CLASSIFICATION: Classification = "PUBLIC";
+
+export interface ProfileLevel {
+  id: string;
+  numeric: number;
+  label: string;
+  color: string;
+  aliases: string[];
+}
+
+let cachedLevels: ProfileLevel[] | null = null;
+
+export async function loadProfileLevels(): Promise<ProfileLevel[]> {
+  if (cachedLevels) return cachedLevels;
+  try {
+    const response = await fetch("/gweder-api/profile");
+    if (response.ok) {
+      const data = await response.json();
+      cachedLevels = data.levels;
+      return cachedLevels!;
+    }
+  } catch (e) {
+    console.warn("Failed to load Gweder profile, using defaults", e);
+  }
+  // Fallback to static constants
+  return CLASSIFICATION_LEVELS.map((id, i) => ({
+    id,
+    numeric: i,
+    label: CLASSIFICATION_LABELS[id as Classification],
+    color: CLASSIFICATION_COLORS[id as Classification].text,
+    aliases: [],
+  }));
+}
