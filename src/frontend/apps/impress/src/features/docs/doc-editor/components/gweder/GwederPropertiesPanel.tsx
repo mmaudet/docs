@@ -50,6 +50,8 @@ export function GwederPropertiesPanel({ value, onSave, onClose }: Props) {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    // Expose ref globally so ClassificationToolbarButton can notify the Gweder renderer
+    (window as any).__gwederDocRef = form.ref;
     onSave(form);
   };
 

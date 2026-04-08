@@ -33,6 +33,28 @@ export function ClassificationToolbarButton() {
           props: { classification: value } as Record<string, unknown>,
         } as Parameters<typeof editor.updateBlock>[1]);
       }
+
+      // Notify Gweder renderer of classification change (best effort)
+      try {
+        const gwederRef = (window as any).__gwederDocRef;
+        if (gwederRef) {
+          const headingBlock = selectedBlocks.find(b => b.type === 'heading');
+          const sectionId = headingBlock ?
+            headingBlock.content?.map((c: any) => c.text || '').join('').toLowerCase()
+              .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+            : currentBlock?.id;
+          if (sectionId) {
+            fetch(`/gweder-api/doc/${gwederRef}/update`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ section_id: sectionId, classification: value }),
+            }).catch(() => {});
+          }
+        }
+      } catch {
+        // Best effort — don't block editor
+      }
     },
     [editor, selectedBlocks],
   );
