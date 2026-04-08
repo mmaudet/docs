@@ -1,4 +1,9 @@
-import { Button, useModal } from '@gouvfr-lasuite/cunningham-react';
+import {
+  Button,
+  VariantType,
+  useModal,
+  useToastProvider,
+} from '@gouvfr-lasuite/cunningham-react';
 import { useTreeContext } from '@gouvfr-lasuite/ui-kit';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
@@ -37,7 +42,12 @@ import {
   useDocTitleUpdate,
   useDocUtils,
   useDuplicateDoc,
+  useUpdateDoc,
 } from '@/docs/doc-management';
+import {
+  GwederProperties,
+  GwederPropertiesPanel,
+} from '@/docs/doc-editor/components/gweder/GwederPropertiesPanel';
 import { useFocusStore, useResponsiveStore } from '@/stores';
 
 import { useCopyCurrentEditorToClipboard } from '../hooks/useCopyCurrentEditorToClipboard';
@@ -93,6 +103,7 @@ export const DocToolBox = ({ doc }: DocToolBoxProps) => {
 
   const [isModalRemoveOpen, setIsModalRemoveOpen] = useState(false);
   const [isModalExportOpen, setIsModalExportOpen] = useState(false);
+  const [isGwederPanelOpen, setIsGwederPanelOpen] = useState(false);
   const selectHistoryModal = useModal();
   const modalShare = useModal();
 
@@ -109,6 +120,24 @@ export const DocToolBox = ({ doc }: DocToolBoxProps) => {
   });
   const makeFavoriteDoc = useCreateFavoriteDoc({
     listInvalidQueries: [KEY_LIST_DOC, KEY_DOC, KEY_LIST_FAVORITE_DOC],
+  });
+
+  const { toast } = useToastProvider();
+  const { mutate: updateDoc } = useUpdateDoc({
+    listInvalidQueries: [KEY_DOC],
+    onSuccess: () => {
+      toast('Propriétés Gweder enregistrées.', VariantType.SUCCESS, {
+        duration: 3000,
+      });
+      setIsGwederPanelOpen(false);
+    },
+    onError: () => {
+      toast(
+        'Erreur lors de l\'enregistrement des propriétés Gweder.',
+        VariantType.ERROR,
+        { duration: 4000 },
+      );
+    },
   });
 
   // Emoji Management
@@ -129,6 +158,14 @@ export const DocToolBox = ({ doc }: DocToolBoxProps) => {
         setIsModalExportOpen(true);
       },
       show: !!ModalExport && isSmallMobile,
+    },
+    {
+      label: 'Propriétés Gweder',
+      icon: <span aria-hidden="true">🛡️</span>,
+      callback: () => {
+        setIsGwederPanelOpen(true);
+      },
+      showSeparator: true,
     },
     {
       label: doc.is_favorite ? t('Unpin') : t('Pin'),
@@ -318,6 +355,19 @@ export const DocToolBox = ({ doc }: DocToolBoxProps) => {
             restoreFocus();
           }}
           doc={doc}
+        />
+      )}
+      {isGwederPanelOpen && (
+        <GwederPropertiesPanel
+          value={doc.gweder_properties ?? null}
+          onSave={(properties: GwederProperties) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            updateDoc({ id: doc.id, gweder_properties: properties } as any);
+          }}
+          onClose={() => {
+            setIsGwederPanelOpen(false);
+            restoreFocus();
+          }}
         />
       )}
     </Box>
