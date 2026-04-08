@@ -11,6 +11,8 @@ import {
 interface Props {
   value: Classification;
   onChange: (value: Classification) => void;
+  /** "pill" renders a solid-color pill with white text (for heading overlay) */
+  variant?: "toolbar" | "pill";
 }
 
 // Cache for dynamically loaded levels
@@ -62,7 +64,7 @@ function getLabel(levelId: string, levels: ProfileLevel[]) {
   return fallback || levelId;
 }
 
-export function ClassificationBadge({ value, onChange }: Props) {
+export function ClassificationBadge({ value, onChange, variant = "toolbar" }: Props) {
   const [open, setOpen] = useState(false);
   const [levels, setLevels] = useState<ProfileLevel[]>([]);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -100,6 +102,7 @@ export function ClassificationBadge({ value, onChange }: Props) {
   }, [open]);
 
   const colors = getColor(value, levels);
+  const isPill = variant === "pill";
 
   const handleToggle = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -123,7 +126,18 @@ export function ClassificationBadge({ value, onChange }: Props) {
         ref={buttonRef}
         type="button"
         onMouseDown={handleToggle}
-        style={{
+        style={isPill ? {
+          background: colors.text,
+          color: "#fff",
+          border: "none",
+          borderRadius: "12px",
+          padding: "3px 12px",
+          fontSize: "11px",
+          fontWeight: 600,
+          cursor: "pointer",
+          lineHeight: "18px",
+          whiteSpace: "nowrap" as const,
+        } : {
           background: colors.bg,
           color: colors.text,
           border: `1px solid ${colors.border}`,
@@ -135,7 +149,7 @@ export function ClassificationBadge({ value, onChange }: Props) {
           lineHeight: "18px",
         }}
       >
-        {getLabel(value, levels)} ▼
+        {getLabel(value, levels)}{isPill ? "" : " ▼"}
       </button>
 
       {open && createPortal(

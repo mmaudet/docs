@@ -57,6 +57,7 @@ import {
   InterlinkingLinkInlineContent,
   InterlinkingSearchInlineContent,
 } from './custom-inline-content';
+import { HeadingClassificationOverlay } from './gweder/HeadingClassificationOverlay';
 import { withClassification } from './gweder/withClassification';
 import XLMultiColumn from './xl-multi-column';
 
@@ -298,6 +299,7 @@ export const BlockNoteEditor = ({ doc, provider }: BlockNoteEditorProps) => {
         )}
         <BlockNoteSuggestionMenu aiAllowed={aiBlockNoteAllowed} />
         <BlockNoteToolbar aiAllowed={aiBlockNoteAllowed} />
+        <HeadingClassificationOverlay />
       </BlockNoteView>
     </Box>
   );
