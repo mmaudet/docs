@@ -45,7 +45,8 @@ export function ClassificationToolbarButton() {
               .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
             : currentBlock?.id;
           if (sectionId) {
-            fetch(`/gweder-api/doc/${gwederRef}/update`, {
+            const gwederApi = (window as any).__gwederApiUrl || 'http://localhost:8000';
+            fetch(`${gwederApi}/doc/${gwederRef}/update`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ section_id: sectionId, classification: value }),
