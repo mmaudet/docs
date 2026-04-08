@@ -187,15 +187,16 @@ export const ModalExport = ({ onClose, doc }: ModalExportProps) => {
 
       blobExport = await zip.generateAsync({ type: 'blob' });
     } else if (format === DocDownloadFormat.GWEDER_JSON) {
-      const gwederProps = doc.gweder_properties;
-      if (!gwederProps) {
-        toast(
-          t('Veuillez renseigner les propriétés Gweder avant l\'export'),
-          VariantType.ERROR,
-        );
-        setIsExporting(false);
-        return;
-      }
+      const gwederProps = doc.gweder_properties || {
+        ref: doc.title || 'DRAFT',
+        date: new Date().toISOString().split('T')[0],
+        expires_at: new Date(Date.now() + 365 * 86400000).toISOString(),
+        audience: ['LINAGORA'],
+        auteur: 'Auteur',
+        emetteur_nom: 'LINAGORA',
+        emetteur_siret: '',
+        destinataire: '',
+      };
       const gwederDocument = blocksToGwederJSON(exportDocument, gwederProps);
       blobExport = new Blob([JSON.stringify(gwederDocument, null, 2)], {
         type: 'application/json',
